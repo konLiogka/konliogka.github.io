@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0"
+    />
+    <link rel="stylesheet" type="text/css" href="suckless.css" />
+    <title>PfSense</title>
+  </head>
+  <body>
+    <h1>PfSense Virtual Setup</h1>
+    <div class="imgs">
+      <img src="images/pfsense.png" style="width: 80%" />
+    </div>
+    <div class="banners">
+      <p>[Linux]</p>
+      <p>[QEMU/KVM]</p>
+      <p>[Firewalls]</p>
+    </div>
+
+    <p>
+      Pfsense is an operating system designed to function as a network firewall
+      and router. It is based on the freebsd operating system. Anyone can
+      install the free version on a device that will function as the router(like
+      a raspberry pi) or inside a virtual environment. In this post I will
+      discuss how one can use libvirt to create a virtual network with pfsense
+      as gateway and a host (kali) to test the firewall on.
+    </p>
+    <hr />
+    <h2>Virtual Machine Setup</h2>
+    <p>
+      Libvirt is an open-source set of tools to help with virtualization of
+      various virtual machine supervisors. For this setup I used QEMU/KVM. QEMU
+      is an open-source emulator written to be fast and low level, as it
+      executes code directly on the CPU. On the other hand, KVM or Kernel-based
+      Virtual Machine is a type-1 hypervisor which means it runs directly on
+      hardware. This powerful combination can create a virtual machine that
+      maximizes performance, security and flexibility.
+      <br /><br />
+      Moving on to the virtual machine setup, I've used Kali and PfSense QEMU
+      images. I'll keep the explanation short as this is not a libvirt tutorial
+      <br />
+      ⦁ For the pfsense VM: 2048M RAM, 1 core/2 threads CPU and 10G DISK.<br />
+      ⦁ For the kali VM: 6144M RAM, 1 core/2 threads CPU and 15G DISK.<br />
+      You could probably use less disk space for both.<br /><br />
+      The pfsense normally works as a router and network firewall while kali as
+      the host machine on which the pfsense webconfigurator UI can be accessed,
+      as it is on the same subnet. To set up the network I used a WAN connection
+      that connects pfsense to the external network (as a bridge) and a LAN
+      connection that gives local ips to pfsense and kali. The WAN virtual
+      network acts as a NAT and the LAN acts as an isolated network. The kali
+      linux virtual machine has only the LAN, as its connection to the internet
+      is only through pfsense.<br />
+
+      Due to some peculiarities of virt-manager, to make pfsense work as a
+      router for kali:<br />
+      ⦁ From pfsense: Set Interface IP -> LAN -> 192.168.100.1<br />
+      ⦁ From kali: sudo route add default gw 192.168.100.1<br />
+    </p>
+    <div class="imgs">
+      <img src="images/pfsense2.png" style="width: 90%" />
+    </div>
+    <p>
+      First WAN and LAN networks were configured with ip 192.168.4.204 and
+      192.168.100.1 respectively. Basically the WAN in this case is a subnet of
+      the physical real network so that pfsense can communicate with the rest of
+      the network and the LAN is the gateway so that it acts as a gateway. The
+      pfsense uses the webconfigurator as a GUI that a host can access as long
+      as it is on the same LAN subnet. The VM running kali linux is on the same
+      LAN subnet 192.168.100.x and using the command
+      <span style="color: #b25068">sudo route add default gw 192.168.100.1</span
+      >, a user can access the interface as they would with a router. The
+      gateway can be any IP that is in the same subnet and is diffeent from the
+      host ip <br /><br />
+
+      Therefore, having access to an easy to understand user interface via the
+      default username and password (admin/admin), various configurations can be
+      made. Initially, a tcp port other than 40 (HTTP) or 443 (HTTPS) will be
+      set. Furthermore, the default DNS servers 8.8.8.8 and 8.8.4.4 were set.
+      Also, UpnP and SMB were disabled for the WAN network to reduce
+      vulnerabilities.
+    </p>
+    <hr>
+    <h2>Packages</h2>
+    <p>
+      Right now PfSense only acts as a router. For the purpose of showing the
+      capabilities of PfSense I am going to use various add-ons. These add-ons
+      come in the form of packages which are a set of software and tools that
+      can be installed through the webconfigurator that extend the functionality
+      of PfSense. The more packages that are installed, the more resources need
+      to be used so make sure you have provided enough RAM/CPU/DISK for your VM.
+      Packages can be installed through System > Package Manager<br /><br />
+      ⦁ Suricata<br />
+      This is a popular IDPS(Intrusion Detection and Prevention System), similar
+      to Snort, which is a software that provides network traffic monitoring
+      capabilities to detect potential threats, alert potential threats or take
+      steps block these threats automatically. <br /><br />
+      For Suricata the WAN interface was used. In it, the option to send log
+      files to the system log was enabled. Then, rulesets had to be installed
+      for threat detection and how pfsense would handle inbound and outbound
+      traffic. In Suricata's Global Settings, ETOpen Emerging Threats rules can
+      be selected via the link: rules.emergingthreats.net. Furthermore, the
+      Snort GPLv2 Community rules and ABUSE.ch SSL blacklist were selected.<br /><br />
+
+      Thus, from the WAN Rules page, various rules can be selected. It is
+      important not to enable all of them because false positives warnings and
+      responses will increase. So specific rules have been selected. So, here we
+      can test the selected rules using the site:
+      <a href="https://www.wicar.org/test-malware.html" target="_blank"
+        >https://www.wicar.org/test-malware.html</a
+      >. Where if an attempt is made to download the EICAR virus (test file),
+      suricata will detect it and abort the installation.
+    </p>
+    <div class="imgs" style="flex-direction: column">
+      <img src="images/pfsense4.png" style="width: 80%" />
+      <img src="images/pfsense3.png" style="width: 80%" />
+    </div>
+    <p>
+      ⦁ PfBlockerNG<br />
+      This package can be used to block IP addresses or domain name lists that
+      are known for malicious activity, such as phishing, malware, or other
+      threats. It can also be used to allow or block access to specific websites
+      or IP addresses based on various criteria. It has additional capabilities
+      to acquire and data collection dns/ips, such as ad companies.<br /><br />
+      In the pfblocker settings, de-duplication was selected as Ipv4 lists can
+      have identical ip's between them, so it doesn't block the same ip multiple
+      times. On the other hand, the CIDR Aggregation option groups networks
+      according to their ip and subnet mask. In essence, some ip addresses can
+      be represented as a single larger address subnet and thus reducing amount
+      of rules.<br /><br />
+      Initially the Ipv4 lists selected are PRI1 and PRI4. In essence they are
+      simply lists of various addresses chosen by various organizations or
+      software recommended to ban them. For example PRI1 gets feeds from talos,
+      spamhaus, emerging threats etc. Once such an address from the list is
+      detected, the action is set to deny both (inbound & outbound).On the other
+      hand, there are DNSBLs which are blacklists of various DNS name mappings.
+      Here 4 black lists were used, Ads_basic, Malicious2 and Phishing.<br /><br />
+      ⦁ Squid<br />
+      Lastly, we have Squid which is a popular solution for creating a proxy
+      server between our host machine and the outside network. In essence,
+      outside network traffic is first passed through this server and then to
+      the internal network. So it acts as a "middleman" between the external
+      internet and the local network. But in general, the main use of a proxy is
+      to make web browsing faster as it caches frequently used sites and loads
+      them from its memory instead of re-requesting packets from remote servers.
+      There is also squidGuard which is used in conjunction with pfsense for
+      additional filtering. It was configured with a cache size of 100MB which
+      means it stores data up to 100MB and then overwrites it for new data.
+    </p>
+  </body>
+</html>

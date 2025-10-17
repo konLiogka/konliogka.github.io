@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0"
+    />
+    <link rel="stylesheet" type="text/css" href="suckless.css" />
+    <title>Mini Guitar Amp</title>
+  </head>
+  <body>
+    <h1>0.5W Guitar Amp with Gain and Treble Controls Using Old PC Speaker</h1>
+    <hr />
+    <div class="banners">
+      <p>[Sound Engineering]</p>
+      <p>[Electronics]</p>
+    </div>
+    <p>
+      This is a mini portable guitar amp powered by a 9V battery. The Sapphire
+      Lite Amp schematic was designed by Idle Wrench @dylan159.9855 on discord.
+      It is a simple amplifier that utilizes the chips TL072 for amplifying the
+      sound and LM386 as power amplifier for the driver, which I sourced from
+      some old logitech speakers.
+      <a href="https://github.com/konLiogka/ODEPergasia" target="_blank"
+        >here</a
+      >
+    </p>
+    <div style=" display:flex; align-items: center; flex-direction:column ;">
+      <img src="images/amp.jpg" style="width: 50%;" />
+      <img src="images/amp1.png" style="width: 80%" />
+    </div>
+    <hr />
+    <h2>How it works</h2>
+    <p>
+      First of all, the dual op-amp TL072 is configured as non-inverting so the
+      signal enters from the "+" input. A reference voltage of 4.5V is used so
+      as to provide a constant source for biasing the op-amp. Two diodes are
+      used as flyback diodes to protect the circuit from over voltages. The GAIN
+      potentiometer is what makes the sound more "metal" as it pushes the
+      waveform to its limits, effectively cutting the top.
+      <br /><br />
+      At the OUT1 of the TL072, there's a TONE potentiometer for adjusting the
+      tone. If there's high resistance, it allows higher frequencies to pass.
+      The signal goes once again into the second op-amp of the TL072, it doesnt
+      amplify the sound but acts as a voltage follower to isolate the signal
+      from load currents.
+      <br /><br />
+      The amplified and buffered signal is then sent to the power amplifier
+      LM386. The built-in gain is not needed. Before sending the signal to the
+      speaker it is VERY important to use a resistor in parallel to the speaker
+      that matches the impedance of the speaker, as well as an electrolytic
+      capacitor as a means to not short the amplifier's DC output to ground
+      which makes them overheat and burn out.
+    </p>
+  </body>
+</html>
