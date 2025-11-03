@@ -1,81 +1,81 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0"
-  />
-  <link rel="stylesheet" type="text/css" href="suckless.css" />
-  <title>Tab Maker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0" />
+    <link rel="stylesheet" type="text/css" href="blog.css" />
+    <title>Tab Maker</title>
 </head>
+
 <body>
-    <h1>Tablature Maker CLI</h1>
+   <main>
+     <h1>Tablature Maker CLI</h1>
+    <p id="home"><a href="../index.html">← Back to home</a></p>
+
     <hr>
-    <div  class="imgs">
+    <div class="imgs">
         <img src="images/tab.png" style="width: 55%;">
-    </div>
-    <div class="banners">
-        <p>[C]</p>
-        <p>[Linux]</p>
-        <p>[CLI]</p>
-        <p>[ncurses]</p>
     </div>
     <p>
         WIP
         <br><br>
-        Very simple program written in C using the ncurses library to quickly write some tabs. 
+        Very simple program written in C using the ncurses library to quickly write some tabs.
     </p>
     <hr>
     <h2>
         Usage
     </h2>
-    <p class="command">
-        <span>[0-6] [characters]</span>
-        <span>Add notes on a single string<br>
-              Example: 1 2h3 3p2 1 1 5 7 9 12<br>
-              To repeat multiple times, type the number of times in front of the string number.<br>
-              Example: 12 3 4 (Result: 3 4 3 4 on string 1)
-        </span>
-    </p>
-    <p class="command">
-        <span>0 [text]</span>
-        <span>Add comments, bpm, notes, etc., on top of the tab<br>
-              Use the TAB key to delete them.
-        </span>
-    </p>
-    <p class="command">
-        <span>c [chords]</span>
-        <span>Add multiple chords, either custom or based on a name.<br>
-              Example: c Am am E 0234xx<br>
-              To add double-digit frets, use ^<br>
-              Example: c ^12^10^10<br>
-              To repeat multiple times, type the number of times in front of c.<br>
-              Example: c2 Am F (Result: Am F Am F)
-        </span>
-    </p>
-    <p class="command">
-        <span>t [tuning name]</span>
-        <span>Change tuning<br>
-              Example: t d#
-        </span>
-    </p>
-    <p class="command">
-        <span>s [time signature]</span>
-        <span>Change time signature<br>
-              Example: s 4/4
-        </span>
-    </p>
-    <p class="command">
-        <span>|</span>
-        <span>Add a bar line
-        </span>
-    </p>
-    <p class="command">
-        <span>x [filepath]</span>
-        <span>Save file (edit .c file to add custom path)
-        </span>
-    </p>
+<div class="code-container">
+    ╔══════════════════════════════════════════════════════════════════════════════╗
+    ║                                TAB SYNTAX                                    ║
+    ╠══════════════════════════════════════════════════════════════════════════════╣
+    ║                                                                              ║
+    ║  ┌─  [0-6] [characters]                                                      ║
+    ║  │   Add notes on a single starting                                          ║
+    ║  │                                                                           ║
+    ║  │   Example: 1 2h3 3p2 1 1 5 7 9 12                                         ║
+    ║  │   To repeat multiple times, type the number of times in front of the      ║
+    ║  │   string number.                                                          ║
+    ║  └─  Example: 12 3 4 (Result: 3 4 3 4 on string 1)                           ║
+    ║                                                                              ║
+    ║  ┌─  0 [text]                                                                ║
+    ║  │   Add comments, bpm, notes, etc., on top of the tab                       ║
+    ║  │   Use the TAB key to delete them.                                         ║
+    ║  └──                                                                         ║
+    ║                                                                              ║
+    ║  ┌─  c [chords]                                                              ║
+    ║  │   Add multiple chords, either custom or based on a name.                  ║
+    ║  │   Example: c Am am E 0234xx                                               ║
+    ║  │                                                                           ║
+    ║  │   To add double-digit frets, use ^                                        ║
+    ║  │   Example: c ^12^10^10                                                    ║
+    ║  │                                                                           ║
+    ║  │   To repeat multiple times, type the number of times in front of c.       ║
+    ║  └─  Example: c2 Am F (Result: Am F Am F)                                    ║
+    ║                                                                              ║
+    ║  ┌─  t [tuning name]                                                         ║
+    ║  │   Change tuning                                                           ║
+    ║  │   Example: t d#                                                           ║
+    ║  └─                                                                          ║
+    ║                                                                              ║
+    ║  ┌─  s [time signature]                                                      ║
+    ║  │   Change time signature                                                   ║
+    ║  │   Example: s 4/4                                                          ║
+    ║  └─                                                                          ║
+    ║                                                                              ║
+    ║  ┌─  |                                                                       ║
+    ║  │   Add a bar line                                                          ║
+    ║  └─                                                                          ║
+    ║                                                                              ║
+    ║  ┌─  x [filepath]                                                            ║
+    ║  │   Save file (edit .c file to add custom path)                             ║
+    ║  └─                                                                          ║
+    ║                                                                              ║
+    ╚══════════════════════════════════════════════════════════════════════════════╝
+</div>
+   </main>
 
 </body>
+
 </html>

@@ -1,606 +1,380 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0"
-    />
-    <link rel="stylesheet" type="text/css" href="suckless.css" />
-    <title>ODL with OVSDB</title>
-  </head>
-  <body>
-    <h1>OpenDayLight with GNS3: Configuring OVSwitches using OVSDB</h1>
-    <hr />
-    <div class="banners">
-      <p>[OpenDaylight]</p>
-      <p>[GNS3]</p>
-      <p>[OVSDB]</p>
-    </div>
-    <p>
-      SDN, or Software Defined Network, is a new concept aimed at creating a
-      network that can be managed through an interface in a centralized base.
-      With SDN, various actions can be performed, such as automating network
-      operations, resource management, and remote programming of devices. In
-      this project, we will study the well-known OpenDaylight controller and
-      OVSDB for communicating with Open VSwitches.<br /><br />
-      OpenDaylight is a free, open-source SDN controller that provides various
-      functions and packages for developing SDN applications, managing the
-      network, and monitoring traffic. It is one of the most well-known
-      controllers. It is based on a microservices architecture, meaning the user
-      can choose which services to install and activate, making it very
-      lightweight since unnecessary processes do not run. The Service
-      Abstraction Layer (SAL) of OpenDaylight is Model Driven (MD-SAL), meaning
-      that network elements are represented through data models. The YANG
-      language is used to design these models. OpenDaylight's SAL supports
-      various protocols such as BGP, LISP, NETCONF, SNMP, OpenFlow, etc.
-    </p>
-    <hr />
-    <h2>GNS3 Setup</h2>
-    <p>
-      For the creation of this project, we will need Open VSwitches for network
-      interconnection, an Ubuntu desktop virtual machine running the
-      OpenDaylight SDN controller, and scripts that communicate with the RESTful
-      API in combination with the southbound interface OVSDB.<br />
-      <br />
-      To set up Ubuntu, Java 8 needs to be installed with the command
-      <p style="color: #9b86bd">apt install openjdk-8-jre-headless</p>,
-      and the environment variable
-      <p style="color: #9b86bd">JAVA_HOME</p> should be set with the
-      command
-      <p style="color: #9b86bd"
-        >export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64</p
-      >. The OpenDaylight controller will be installed using wget. The version
-      of OpenDaylight to be installed is Boron, along with Karaf, which contains
-      a container environment compatible with OSGi (Open Service Gateway
-      Initiative), a framework for creating modular Java applications. The
-      installation command is:<br />
-      <br />
-      <p style="color: #9b86bd"
-        >wget
-        https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.5.2-Boron-SR2/distribution-karaf-0.5.2-Boron-SR2.zip</p
-      ><br />
-      <br />
-      A static IP was also configured on the computer.<br />
-      <br />
-      To set up OpenDaylight, after navigating to the ODL directory and starting
-      the server, some packages need to be installed. This can be done with the
-      command:<br />
-      <br />
-      <p style="color: #4b70f5"
-        >feature:install odl-restconf odl-l2switch-switch odl-mdsal-apidocs
-        odl-dlux-all odl-ovsd-southbound-api odl-ovsdb-southbound-impl</p
-      ><br />
-      <br />
-      To view the installed packages, you can use the command
-      <p style="color: #4b70f5">feature:list -i</p>.<br />
-      <br />
-      Finally, to configure the Open VSwitches initially, execute the following
-      commands:<br />
-      <br />
-      1.
-      <p style="color: #b25068"
-        >ovs-vsctl set bridge br0 stp_enable=true</p
-      >
-      to enable the pning Tree Protocol, which finds the best path in a
-      network.<br />
-      2.
-      <p style="color: #b25068"
-        >ovs-vsctl set bridge br0 protocols=OpenFlow10</p
-      >
-      to set the version of the OpenFlow protocol for communication between the
-      switch and the SDN controller.<br />
-      3.
-      <p style="color: #b25068"
-        >ovs-vsctl set-controller br0 tcp:(controller IP):6633</p
-      >
-      (or port 6653) to set the port on which the SDN controller listens.<br />
-      <br />
-      To check if the connection was successful, use the command
-      <p style="color: #b25068">ovs-vsctl list controller</p>.
-    </p>
-    <div class="imgs">
-      <img src="images/odl1.png" style="width: 60%" />
-    </div>
-    <hr />
-    <h2>Network Topology</h2>
-    <p>
-      The network can be as simple as connecting one OVSwitch to the ODL host
-      however for future experimentation I have added more switches/hosts. It
-      consists of 3 managed Open VSwitches connected to a hub along with the SDN
-      controller. Each of the first two switches has its own network with
-      routers and two hosts. The routers run OpenWRT software, have static IPs,
-      and the internal network has IP addresses in the 10.0.x.x range,
-      connecting to the external network using a routing table. The third switch
-      is used by the controller for configuration changes. The SDN controller
-      connects to the switches through a simple non-managed Ethernet hub.
-      Internet connectivity is provided by an external NAT cloud. As previously
-      said, the topology does not need to be complex as the functions that can
-      be implemented on the Open VSwitch will be analyzed.
-    </p>
-    <div class="imgs">
-      <img src="images/odl2.png" style="width: 60%" />
-    </div>
-    <p>
-      To access the OpenDaylight GUI, Firefox browser was used on Ubuntu.
-      Installation of a VNC viewer, such as TigerVNC, on the host machine is
-      necessary to open a window for the virtual machine. The site address is
-      (controller IP):8181/index.html. Initially, we view the network topology.
-      We have connected 3 switches and two routers, each with two PCs. The
-      password for ubuntu is osboxes.org
-    </p>
-    <div class="imgs">
-      <img src="images/odl3.png" style="width: 60%" />
-    </div>
-    <hr />
-    <h2>Using OVSDB</h2>
-    <p>
-      The switches are based on the free open-source software Open VSwitch and
-      are a multi-layer virtual managed switch capable of configuration and
-      providing traffic management and analysis functionalities. OVSDB, or Open
-      VSwitch DataBase, is a database that maintains information for managing
-      Open VSwitches. The Abstraction Layer is used for communication between
-      different protocols, which for the OpenDaylight controller is MD-SAL.
-      Modifications to OVS can be made remotely via OVSDB. OpenDaylight has the
-      capability to install the OVSDB package for controller-to-switch
-      communication using RESTful API. This package is divided into northbound
-      and southbound interfaces, although only the southbound interface will be
-      used in this work.<br /><br />
-      RESTful API is an interface that allows two terminals to communicate
-      through processes and endpoints. It is also an architecture that uses HTTP
-      requests to read or modify data. Specifically, commands such as GET, PUT,
-      POST, and DELETE are used.<br /><br />
-      For this project, bash scripts were created with RESTful API code using
-      the curl command as a web interface. Thus, the ovsdb functions as a
-      manager and communicates with the switch to remotely modify its settings.
-      The implemented functions include:<br />
-      <p style="color: #b25068">• Connecting switch to ovsdb manager</p
-      ><br />
-      <p style="color: #b25068">• Disconnecting</p><br />
-      <p style="color: #b25068">• Requesting local settings</p><br />
-      <p style="color: #b25068">• Requesting remote settings</p><br />
-      <p style="color: #b25068"
-        >• Creating, requesting, and deleting bridge</p
-      ><br />
-      <p style="color: #b25068"
-        >• Creating, requesting, and deleting VLAN</p
-      ><br /><br />
 
-      To remotely manage Open VSwitch, the manager must first be defined.
-      Initially, the port on which the ovsdb manager listens must be defined,
-      which is 6640,
-      <p style="color: #4b70f5">ovs-vsctl set-manager ptcp:6640</p>. Then,
-      the ovsdb-server that communicates with the controller should be stopped
-      and a new one activated. First, find the Process ID using the
-      <p style="color: #4b70f5">ps</p> command and then terminate it with
-      <p style="color: #4b70f5">kill &lt;PID&gt;</p>. Then execute the
-      command
-      <p style="color: #4b70f5"
-        >ovsdb-server --remote=punix:/var/lib/openvswitch/db.sock
-        --remote=db:Open_vSwitch,Open_vSwitch,manager_options --pidfile
-        --detach</p
-      >.<br /><br />
-      Upon starting the server, through the terminal on the Ubuntu host using
-      the API scripts, new switch hosts can be created by providing the switch's
-      IP and a host name. Then, bridges and VLANs can be added, as well as
-      modification of the existing network. The scripts were created in bash and
-      use the curl command to communicate with HTTP requests to the ovsdb
-      manager.
-    </p>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0" />
+  <link rel="stylesheet" type="text/css" href="blog.css" />
+  <title>ODL with OVSDB</title>
+</head>
 
-    <hr />
-    <h2>Code</h2>
-    <p>
-      After following the ODL OVSDB
-      <a
-        href="https://docs.opendaylight.org/projects/ovsdb/en/latest/ovsdb-user-guide.html"
-        >wiki</a
-      >
-      one can use the frontend OVSDB UI to communicate with the swithes using
-      RESTful API commands. However I couldn't make it work so I made my own
-      utilizing bash scripts with curl command.
-    </p>
-    <div class="code-container">
-      <p class="comment"># Get Topology</p>
-      <p><p class="keyword">#!/bin/bash</p></p>
+<body>
+ <main>
+   <h1>OpenDayLight with GNS3: Configuring OVSwitches using OVSDB</h1>
+    <p id="home"><a href="../index.html">← Back to home</a></p>
+  <hr />
+  <p>
+    SDN, or Software Defined Network, is a new concept aimed at creating a
+    network that can be managed through an interface in a centralized base.
+    With SDN, various actions can be performed, such as automating network
+    operations, resource management, and remote programming of devices. In
+    this project, we will study the well-known OpenDaylight controller and
+    OVSDB for communicating with Open VSwitches.<br /><br />
+    OpenDaylight is a free, open-source SDN controller that provides various
+    functions and packages for developing SDN applications, managing the
+    network, and monitoring traffic. It is one of the most well-known
+    controllers. It is based on a microservices architecture, meaning the user
+    can choose which services to install and activate, making it very
+    lightweight since unnecessary processes do not run. The Service
+    Abstraction Layer (SAL) of OpenDaylight is Model Driven (MD-SAL), meaning
+    that network elements are represented through data models. The YANG
+    language is used to design these models. OpenDaylight's SAL supports
+    various protocols such as BGP, LISP, NETCONF, SNMP, OpenFlow, etc.
+  </p>
+  <hr />
+  <h2>GNS3 Setup</h2>
+  <p>
+    For the creation of this project, we will need Open VSwitches for network
+    interconnection, an Ubuntu desktop virtual machine running the
+    OpenDaylight SDN controller, and scripts that communicate with the RESTful
+    API in combination with the southbound interface OVSDB.<br />
+    <br />
+    To set up Ubuntu, Java 8 needs to be installed with the command
+  <p style="color: #9b86bd">apt install openjdk-8-jre-headless</p>,
+  and the environment variable
+  <p style="color: #9b86bd">JAVA_HOME</p> should be set with the
+  command
+  <p style="color: #9b86bd">export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64</p>. The OpenDaylight controller will
+  be installed using wget. The version
+  of OpenDaylight to be installed is Boron, along with Karaf, which contains
+  a container environment compatible with OSGi (Open Service Gateway
+  Initiative), a framework for creating modular Java applications. The
+  installation command is:<br />
+  <br />
+  <p style="color: #9b86bd">wget
+    https://nexus.opendaylight.org/content/repositories/opendaylight.release/org/opendaylight/integration/distribution-karaf/0.5.2-Boron-SR2/distribution-karaf-0.5.2-Boron-SR2.zip
+  </p><br />
+  <br />
+  A static IP was also configured on the computer.<br />
+  <br />
+  To set up OpenDaylight, after navigating to the ODL directory and starting
+  the server, some packages need to be installed. This can be done with the
+  command:<br />
+  <br />
+  <p style="color: #4b70f5">feature:install odl-restconf odl-l2switch-switch odl-mdsal-apidocs
+    odl-dlux-all odl-ovsd-southbound-api odl-ovsdb-southbound-impl</p><br />
+  <br />
+  To view the installed packages, you can use the command
+  <p style="color: #4b70f5">feature:list -i</p>.<br />
+  <br />
+  Finally, to configure the Open VSwitches initially, execute the following
+  commands:<br />
+  <br />
+  1.
+  <p style="color: #b25068">ovs-vsctl set bridge br0 stp_enable=true</p>
+  to enable the pning Tree Protocol, which finds the best path in a
+  network.<br />
+  2.
+  <p style="color: #b25068">ovs-vsctl set bridge br0 protocols=OpenFlow10</p>
+  to set the version of the OpenFlow protocol for communication between the
+  switch and the SDN controller.<br />
+  3.
+  <p style="color: #b25068">ovs-vsctl set-controller br0 tcp:(controller IP):6633</p>
+  (or port 6653) to set the port on which the SDN controller listens.<br />
+  <br />
+  To check if the connection was successful, use the command
+  <p style="color: #b25068">ovs-vsctl list controller</p>.
+  </p>
+  <div class="imgs">
+    <img src="images/odl1.png" style="width: 60%" />
+  </div>
+  <hr />
+  <h2>Network Topology</h2>
+  <p>
+    The network can be as simple as connecting one OVSwitch to the ODL host
+    however for future experimentation I have added more switches/hosts. It
+    consists of 3 managed Open VSwitches connected to a hub along with the SDN
+    controller. Each of the first two switches has its own network with
+    routers and two hosts. The routers run OpenWRT software, have static IPs,
+    and the internal network has IP addresses in the 10.0.x.x range,
+    connecting to the external network using a routing table. The third switch
+    is used by the controller for configuration changes. The SDN controller
+    connects to the switches through a simple non-managed Ethernet hub.
+    Internet connectivity is provided by an external NAT cloud. As previously
+    said, the topology does not need to be complex as the functions that can
+    be implemented on the Open VSwitch will be analyzed.
+  </p>
+  <div class="imgs">
+    <img src="images/odl2.png" style="width: 60%" />
+  </div>
+  <p>
+    To access the OpenDaylight GUI, Firefox browser was used on Ubuntu.
+    Installation of a VNC viewer, such as TigerVNC, on the host machine is
+    necessary to open a window for the virtual machine. The site address is
+    (controller IP):8181/index.html. Initially, we view the network topology.
+    We have connected 3 switches and two routers, each with two PCs. The
+    password for ubuntu is osboxes.org
+  </p>
+  <div class="imgs">
+    <img src="images/odl3.png" style="width: 60%" />
+  </div>
+  <hr />
+  <h2>Using OVSDB</h2>
+  <p>
+    The switches are based on the free open-source software Open VSwitch and
+    are a multi-layer virtual managed switch capable of configuration and
+    providing traffic management and analysis functionalities. OVSDB, or Open
+    VSwitch DataBase, is a database that maintains information for managing
+    Open VSwitches. The Abstraction Layer is used for communication between
+    different protocols, which for the OpenDaylight controller is MD-SAL.
+    Modifications to OVS can be made remotely via OVSDB. OpenDaylight has the
+    capability to install the OVSDB package for controller-to-switch
+    communication using RESTful API. This package is divided into northbound
+    and southbound interfaces, although only the southbound interface will be
+    used in this work.<br /><br />
+    RESTful API is an interface that allows two terminals to communicate
+    through processes and endpoints. It is also an architecture that uses HTTP
+    requests to read or modify data. Specifically, commands such as GET, PUT,
+    POST, and DELETE are used.<br /><br />
+    For this project, bash scripts were created with RESTful API code using
+    the curl command as a web interface. Thus, the ovsdb functions as a
+    manager and communicates with the switch to remotely modify its settings.
+    The implemented functions include:<br />
+  <p style="color: #b25068">• Connecting switch to ovsdb manager</p><br />
+  <p style="color: #b25068">• Disconnecting</p><br />
+  <p style="color: #b25068">• Requesting local settings</p><br />
+  <p style="color: #b25068">• Requesting remote settings</p><br />
+  <p style="color: #b25068">• Creating, requesting, and deleting bridge</p><br />
+  <p style="color: #b25068">• Creating, requesting, and deleting VLAN</p><br /><br />
 
-      <p>
-        <p class="variable">username</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">password</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">controller</p>=<p class="value"
-          >"localhost"</p
-        >
-      </p>
+  To remotely manage Open VSwitch, the manager must first be defined.
+  Initially, the port on which the ovsdb manager listens must be defined,
+  which is 6640,
+  <p style="color: #4b70f5">ovs-vsctl set-manager ptcp:6640</p>. Then,
+  the ovsdb-server that communicates with the controller should be stopped
+  and a new one activated. First, find the Process ID using the
+  <p style="color: #4b70f5">ps</p> command and then terminate it with
+  <p style="color: #4b70f5">kill &lt;PID&gt;</p>. Then execute the
+  command
+  <p style="color: #4b70f5">ovsdb-server --remote=punix:/var/lib/openvswitch/db.sock
+    --remote=db:Open_vSwitch,Open_vSwitch,manager_options --pidfile
+    --detach</p>.<br /><br />
+  Upon starting the server, through the terminal on the Ubuntu host using
+  the API scripts, new switch hosts can be created by providing the switch's
+  IP and a host name. Then, bridges and VLANs can be added, as well as
+  modification of the existing network. The scripts were created in bash and
+  use the curl command to communicate with HTTP requests to the ovsdb
+  manager.
+  </p>
 
-      <p>
-        <p class="variable">curl_cmd</p>=<p class="value"
-          >"curl -u $username:$password
-          http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/
-          | jq"</p
-        >
-      </p>
+  <hr />
+  <h2>Code</h2>
+  <p>
+    After following the ODL OVSDB
+    <a href="https://docs.opendaylight.org/projects/ovsdb/en/latest/ovsdb-user-guide.html">wiki</a>
+    one can use the frontend OVSDB UI to communicate with the swithes using
+    RESTful API commands. However I couldn't make it work so I made my own
+    utilizing bash scripts with curl command.
+  </p>
+  <div class="code-container">
+    # Get Topology
+    #!/bin/bash
 
-      <p>
-        <p class="command">echo</p>
-        <p class="string">"$curl_cmd"</p>
-      </p>
-      <p>
-        <p class="command">eval</p>
-        <p class="string">"$curl_cmd"</p>
-      </p>
-    </div>
-    <div class="code-container">
-      <p><p class="comment"># Get operational</p></p>
+    username="admin"
+    password="admin"
+    controller="localhost"
 
-      <p>
-        <p class="variable">username</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">password</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">controller</p>=<p class="value"
-          >"localhost"</p
-        >
-      </p>
+    curl_cmd="curl -u $username:$password
+    http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/ | jq"
 
-      <div>
-        <p>
-          curl_cmd=<p class="string"
-            >"curl -u $username:$password
-            http://$controller:8181/restconf/operational/network-topology:network-topology/topology/ovsdb:1
-            | jq"</p
-          >
-        </p>
+    echo "$curl_cmd"
+    eval "$curl_cmd"
+  </div>
 
-        <p>echo <p class="string">"$curl_cmd"</p></p>
-        <p>eval <p class="string">"$curl_cmd"</p></p>
-      </div>
-    </div>
-    <div class="code-container">
-      <p><p class="comment"># Create OVS host</p></p>
+  <div class="code-container">
+    # Get operational
+    username="admin"
+    password="admin"
+    controller="localhost"
 
-      <p>
-        <p class="variable">username</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">password</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">controller</p>=<p class="value"
-          >"localhost"</p
-        >
-      </p>
-      <p>
-        <p class="variable">port</p>=<p class="value">"6640"</p>
-      </p>
+    curl_cmd="curl -u $username:$password
+    http://$controller:8181/restconf/operational/network-topology:network-topology/topology/ovsdb:1 | jq"
 
-      <p>
-        <p class="command">if</p> [ <p class="variable">$#</p> -ne 2
-        ]; <p class="command">then</p>
-      </p>
-      <p>
-        <p class="command">echo</p>
-        <p class="string">"Input: $0 &lt;ovs-ip&gt; &lt;host-name&gt;"</p>
-      </p>
-      <p><p class="command">exit</p> 1</p>
-      <p><p class="command">fi</p></p>
+    echo "$curl_cmd"
+    eval "$curl_cmd"
+  </div>
 
-      <div>
-        <p>
-          curl_cmd=<p class="string"
-            >"curl -u $username:$password -X PUT -H \"Content-Type:
-            application/json\" -d '{</p
-          >
-        </p>
-        <p><p class="string"> \"network-topology:node\": [</p></p>
-        <p><p class="string"> {</p></p>
-        <p><p class="string"> \"node-id\": \"ovsdb://$2\",</p></p>
-        <p><p class="string"> \"ovsdb:connection-info\": {</p></p>
-        <p><p class="string"> \"ovsdb:remote-port\": \"$port\",</p></p>
-        <p><p class="string"> \"ovsdb:remote-ip\": \"$1\"</p></p>
-        <p><p class="string"> }</p></p>
-        <p><p class="string"> }</p></p>
-        <p><p class="string"> ]'</p></p>
-        <p>
-          <p class="string"
-            >http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$2
-            | jq"</p
-          >
-        </p>
+  <div class="code-container">
+    # Create OVS host
+    username="admin"
+    password="admin"
+    controller="localhost"
+    port="6640"
 
-        <p>echo <p class="string">"$curl_cmd"</p></p>
-        <p>eval <p class="string">"$curl_cmd"</p></p>
-      </div>
-    </div>
+    if [ $# -ne 2 ]; then
+    echo "Input: $0 <ovs-ip> <host-name>"
+        exit 1
+        fi
 
-    <div class="code-container">
-        <p><p class="comment"># Delete OVS Host</p></p>
+        curl_cmd="curl -u $username:$password -X PUT -H \"Content-Type: application/json\" -d '{
+        \"network-topology:node\": [
+        {
+        \"node-id\": \"ovsdb://$2\",
+        \"ovsdb:connection-info\": {
+        \"ovsdb:remote-port\": \"$port\",
+        \"ovsdb:remote-ip\": \"$1\"
+        }
+        }
+        ]}'
+        http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$2 |
+        jq"
 
-        <p><p class="variable">username</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">password</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">controller</p>=<p class="value">"localhost"</p></p>
+        echo "$curl_cmd"
+        eval "$curl_cmd"
+  </div>
 
-        <p><p class="command">if</p> [ <p class="variable">$#</p> -ne 1 ]; <p class="command">then</p></p>
-        <p>    <p class="command">echo</p> <p class="string">"Input: $0 &lt;host-name&gt;"</p></p>
-        <p>    <p class="command">exit</p> 1</p>
-        <p><p class="command">fi</p></p>
+  <div class="code-container">
+    # Delete OVS Host
+    username="admin"
+    password="admin"
+    controller="localhost"
 
-        <div class="curl-command">
-            <p>curl_cmd=<p class="string">"curl -u $username:$password -X DELETE http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1 | jq"</p></p>
+    if [ $# -ne 1 ]; then
+    echo "Input: $0 <host-name>"
+      exit 1
+      fi
 
-            <p>echo <p class="string">"$curl_cmd"</p></p>
-            <p>eval <p class="string">"$curl_cmd"</p></p>
+      curl_cmd="curl -u $username:$password -X DELETE
+      http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1 |
+      jq"
 
-            <p><p class="comment"># Get all bridges associated with the OVS host</p></p>
-            <p>bridges_cmd=<p class="string">"curl -u $username:$password http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1/bridge | jq -r '.nodes[].node-id'"</p></p>
+      echo "$curl_cmd"
+      eval "$curl_cmd"
+  </div>
 
-            <p><p class="command">while</p> IFS= read -r bridge_id; <p class="command">do</p></p>
-            <p>    <p class="command">if</p> [ -n "<p class="variable">$bridge_id</p>" ]; <p class="command">then</p></p>
-            <p>        bridge_name=<p class="string">"$(basename "<p class="variable">$bridge_id</p>")"</p></p>
-            <p>        <p class="command">echo</p> <p class="string">"Deleting bridge: <p class="variable">$bridge_name</p>"</p></p>
+  <div class="code-container">
+    # Create Bridge
+    username="admin"
+    password="admin"
+    controller="localhost"
+    port="6640"
 
-            <p>        <p class="comment"># Delete the bridge</p></p>
-            <p>        curl_cmd=<p class="string">"curl -u $username:$password -X DELETE http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$bridge_name | jq"</p></p>
-            <p>        echo <p class="string">"$curl_cmd"</p></p>
-            <p>        eval <p class="string">"$curl_cmd"</p></p>
+    if [ $# -ne 2 ]; then
+    echo "Input: $0 <host-name> <bridge-name>"
+        exit 1
+        fi
 
-            <p>        <p class="comment"># Delete all VLANs associated with the bridge</p></p>
-            <p>        curl_cmd=<p class="string">"curl -u $username:$password -X DELETE http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$bridge_name/termination-point | jq"</p></p>
-            <p>        echo <p class="string">"$curl_cmd"</p></p>
-            <p>        eval <p class="string">"$curl_cmd"</p></p>
+        read -r -d '' json_data <<EOF { "network-topology:node" : [ { "node-id" : "ovsdb://$1/bridge/$2"
+          , "ovsdb:bridge-name" : "$2" , "ovsdb:protocol-entry" : [ { "protocol"
+          : "ovsdb:ovsdb-bridge-protocol-openflow-10" } ], "ovsdb:managed-by"
+          : "/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='ovsdb://$1']"
+          } ] } EOF curl -u $username:$password -X PUT -H "Content-Type: application/json"
+          -d "$json_data" "http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2"
+          | jq </div>
+  </div>
+  <div class="code-container">
+    # Delete Bridge
+    username="admin"
+    password="admin"
+    controller="localhost"
+    port="6640"
 
-            <p>    <p class="command">fi</p></p>
-            <p><p class="command">done</p> &lt; &lt;(<p class="variable">echo "<p class="variable">$bridges_cmd</p>"</p>)</p>
-        </div>
-    </div>
-    <div class="code-container">
-      <p><p class="comment"># Create Bridge</p></p>
+    if [ $# -ne 2 ]; then
+    echo "Input: $0 <host-name> <bridge-name>"
+        exit 1
+        fi
 
-      <p>
-        <p class="variable">username</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">password</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">controller</p>=<p class="value"
-          >"localhost"</p
-        >
-      </p>
-      <p>
-        <p class="variable">port</p>=<p class="value">"6640"</p>
-      </p>
+        curl_cmd="curl -u $username:$password -X DELETE
+        http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2
+        | jq"
 
-      <p>
-        <p class="command">if</p> [ <p class="variable">$#</p> -ne 2
-        ]; <p class="command">then</p>
-      </p>
-      <p>
-        <p class="command">echo</p>
-        <p class="string"
-          >"Input: $0 &lt;host-name&gt; &lt;bridge-name&gt;"</p
-        >
-      </p>
-      <p><p class="command">exit</p> 1</p>
-      <p><p class="command">fi</p></p>
+        echo "$curl_cmd"
+        eval "$curl_cmd"
+  </div>
 
-      <div class="json-data">
-        <p>read -r -d '' json_data &lt;&lt;EOF</p>
-        <p>{</p>
-        <p><p class="string">"network-topology:node": [</p></p>
-        <p>{</p>
-        <p><p class="string">"node-id": "ovsdb://$1/bridge/$2",</p></p>
-        <p><p class="string">"ovsdb:bridge-name": "$2",</p></p>
-        <p><p class="string">"ovsdb:protocol-entry": [</p></p>
-        <p>{</p>
-        <p>
-          <p class="string"
-            >"protocol": "ovsdb:ovsdb-bridge-protocol-openflow-10"</p
-          >
-        </p>
-        <p>}</p>
-        <p>],</p>
-        <p>
-          <p class="string"
-            >"ovsdb:managed-by":
-            "/network-topology:network-topology/network-topology:topology[network-topology:topology-id='ovsdb:1']/network-topology:node[network-topology:node-id='ovsdb://$1']"</p
-          >
-        </p>
-        <p>}</p>
-        <p>}</p>
-        <p>EOF</p>
-      </div>
+  <div class="code-container">
+    # Create VLAN
+    username="admin"
+    password="admin"
+    controller="localhost"
+    port="6640"
 
-      <div>
-        <p>
-          curl -u <p class="variable">$username</p>:<p class="variable"
-            >$password</p
-          >
-          -X PUT -H
-          <p class="string">"Content-Type: application/json"</p> -d
-          <p class="string">"$json_data"</p>
-          <p class="string"
-            >"http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2"</p
-          >
-          | jq
-        </p>
-      </div>
-    </div>
-    <div class="code-container">
-      <p><p class="comment"># Get bridge</p></p>
+    if [ $# -ne 6 ]; then
+    echo "Input: $0 <host-name> <bridge-name> <port-name> <vlan-ip> <vlan-tag>
+              <trunk>"
+                exit 1
+                fi
 
-      <p>
-        <p class="variable">username</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">password</p>=<p class="value"
-          >"admin"</p
-        >
-      </p>
-      <p>
-        <p class="variable">controller</p>=<p class="value"
-          >"localhost"</p
-        >
-      </p>
+                curl_cmd="curl -u $username:$password -X PUT -H \"Content-Type: application/json\" -d '{
+                \"network-topology:termination-point\": [
+                {
+                \"ovsdb:options\": [
+                {
+                \"ovsdb:option\": \"remote_ip\",
+                \"ovsdb:value\": \"$4\"
+                }
+                ],
+                \"ovsdb:name\": \"$3\",
+                \"ovsdb:interface-type\": \"ovsdb:interface-type-vxlan\",
+                \"tp-id\": \"$3\",
+                \"vlan-tag\": \"$5\",
+                \"trunks\": [
+                {
+                \"trunk\": \"$6\"
+                }
+                ],
+                \"vlan-mode\": \"access\"
+                }
+                ]
+                }'
+                http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point/$3/
+                | jq"
 
-      <p>
-        <p class="command">if</p> [ <p class="variable">$#</p> -ne 2
-        ]; <p class="command">then</p>
-      </p>
-      <p>
-        <p class="command">echo</p>
-        <p class="string"
-          >"Input: $0 &lt;host-name&gt; &lt;bridge-name&gt;"</p
-        >
-      </p>
-      <p><p class="command">exit</p> 1</p>
-      <p><p class="command">fi</p></p>
+                echo "$curl_cmd"
+                eval "$curl_cmd"
+  </div>
 
-      <div>
-        <p>
-          curl_cmd=<p class="string"
-            >"curl -u $username:$password
-            http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F$1%2Fbridge%2F$2/
-            | jq"</p
-          >
-        </p>
+  <div class="code-container">
+    # Get VLAN
+    username="admin"
+    password="admin"
+    controller="localhost"
 
-        <p>echo <p class="string">"$curl_cmd"</p></p>
-        <p>eval <p class="string">"$curl_cmd"</p></p>
-      </div>
-    </div>
-    <div class="code-container">
-        <p><p class="comment"># Delete Bridge</p></p>
+    if [ $# -ne 3 ]; then
+    echo "Input: $0 <host-name> <bridge-name> <port-name>"
+          exit 1
+          fi
 
-        <p><p class="variable">username</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">password</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">controller</p>=<p class="value">"localhost"</p></p>
-        <p><p class="variable">port</p>=<p class="value">"6640"</p></p>
+          curl_cmd="curl -u $username:$password
+          http://$controller:8181/restconf/operational/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point/$3
+          | jq"
 
-        <p><p class="command">if</p> [ <p class="variable">$#</p> -ne 2 ]; <p class="command">then</p></p>
-        <p>    <p class="command">echo</p> <p class="string">"Input: $0 &lt;host-name&gt; &lt;bridge-name&gt;"</p></p>
-        <p>    <p class="command">exit</p> 1</p>
-        <p><p class="command">fi</p></p>
+          echo "$curl_cmd"
+          eval "$curl_cmd"
+  </div>
 
-        <div class="curl-command">
-            <p>curl_cmd=<p class="string">"curl -u $username:$password -X DELETE http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2 | jq"</p></p>
+  <div class="code-container">
+    # Delete VLAN
+    username="admin"
+    password="admin"
+    controller="localhost"
 
-            <p>echo <p class="string">"$curl_cmd"</p></p>
-            <p>eval <p class="string">"$curl_cmd"</p></p>
+    if [ $# -ne 3 ]; then
+    echo "Input: $0 <host-name> <bridge-name> <port-name>"
+          exit 1
+          fi
 
-            <p><p class="comment"># Delete all VLANs associated with the bridge</p></p>
-            <p>curl_cmd=<p class="string">"curl -u $username:$password -X DELETE http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point | jq"</p></p>
+          curl_cmd="curl -u $username:$password -X DELETE
+          http://$controller:8181/restconf/operational/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point/$3
+          | jq"
 
-            <p>echo <p class="string">"$curl_cmd"</p></p>
-            <p>eval <p class="string">"$curl_cmd"</p></p>
-        </div>
-    </div>
+          echo "$curl_cmd"
+          eval "$curl_cmd"
+  </div>
+ </main>
 
-    <div class="code-container">
-        <p><p class="comment"># Create VLAN</p></p>
-    
-        <p><p class="variable">username</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">password</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">controller</p>=<p class="value">"localhost"</p></p>
-        <p><p class="variable">port</p>=<p class="value">"6640"</p></p>
-    
-        <p><p class="command">if</p> [ <p class="variable">$#</p> -ne 6 ]; <p class="command">then</p></p>
-        <p>    <p class="command">echo</p> <p class="string">"Input: $0 &lt;host-name&gt; &lt;bridge-name&gt; &lt;port-name&gt; &lt;vlan-ip&gt; &lt;vlan-tag&gt; &lt;trunk&gt;"</p></p>
-        <p>    <p class="command">exit</p> 1</p>
-        <p><p class="command">fi</p></p>
-    
-        <div>
-            <p>curl_cmd=<p class="string">"curl -u $username:$password -X PUT -H \"Content-Type: application/json\" -d '{</p></p>
-            <p><p class="string">  \"network-topology:termination-point\": [</p></p>
-            <p><p class="string">    {</p></p>
-            <p><p class="string">      \"ovsdb:options\": [</p></p>
-            <p><p class="string">        {</p></p>
-            <p><p class="string">          \"ovsdb:option\": \"remote_ip\",</p></p>
-            <p><p class="string">          \"ovsdb:value\": \"$4\"</p></p>
-            <p><p class="string">        }</p></p>
-            <p><p class="string">      ],</p></p>
-            <p><p class="string">      \"ovsdb:name\": \"$3\",</p></p>
-            <p><p class="string">      \"ovsdb:interface-type\": \"ovsdb:interface-type-vxlan\",</p></p>
-            <p><p class="string">      \"tp-id\": \"$3\",</p></p>
-            <p><p class="string">      \"vlan-tag\": \"$5\",</p></p>
-            <p><p class="string">      \"trunks\": [</p></p>
-            <p><p class="string">        {</p></p>
-            <p><p class="string">          \"trunk\": \"$6\"</p></p>
-            <p><p class="string">        }</p></p>
-            <p><p class="string">      ],</p></p>
-            <p><p class="string">      \"vlan-mode\": \"access\"</p></p>
-            <p><p class="string">    }</p></p>
-            <p><p class="string">  ]</p></p>
-            <p><p class="string">}' http://$controller:8181/restconf/config/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point/$3/ | jq"</p></p>
-    
-            <p>echo <p class="string">"$curl_cmd"</p></p>
-            <p>eval <p class="string">"$curl_cmd"</p></p>
-        </div>
-    </div>
-    <div class="code-container">
-        <p><p class="comment"># Get VLAN</p></p>
-    
-        <p><p class="variable">username</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">password</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">controller</p>=<p class="value">"localhost"</p></p>
-    
-        <p><p class="command">if</p> [ <p class="variable">$#</p> -ne 3 ]; <p class="command">then</p></p>
-        <p>    <p class="command">echo</p> <p class="string">"Input: $0 &lt;host-name&gt; &lt;bridge-name&gt; &lt;port-name&gt;"</p></p>
-        <p>    <p class="command">exit</p> 1</p>
-        <p><p class="command">fi</p></p>
-    
-        <div >
-            <p>curl_cmd=<p class="string">"curl -u $username:$password http://$controller:8181/restconf/operational/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point/$3 | jq"</p></p>
-    
-            <p>echo <p class="string">"$curl_cmd"</p></p>
-            <p>eval <p class="string">"$curl_cmd"</p></p>
-        </div>
-    </div>
 
-    <div class="code-container">
-        <p><p class="comment"># Delete VLAN</p></p>
-    
-        <p><p class="variable">username</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">password</p>=<p class="value">"admin"</p></p>
-        <p><p class="variable">controller</p>=<p class="value">"localhost"</p></p>
-    
-        <p><p class="command">if</p> [ <p class="variable">$#</p> -ne 3 ]; <p class="command">then</p></p>
-        <p>    <p class="command">echo</p> <p class="string">"Input: $0 &lt;host-name&gt; &lt;bridge-name&gt; &lt;port-name&gt;"</p></p>
-        <p>    <p class="command">exit</p> 1</p>
-        <p><p class="command">fi</p></p>
-    
-        <div class="curl-command">
-            <p>curl_cmd=<p class="string">"curl -u $username:$password -X DELETE http://$controller:8181/restconf/operational/network-topology:network-topology/topology/ovsdb:1/node/ovsdb:%2F%2F$1%2Fbridge%2F$2/termination-point/$3 | jq"</p></p>
-    
-stri        <p>echo <p class="string">"$curl_cmd"</p></p>
-            <p>eval <p class="string">"$curl_cmd"</p></p>
-        </div>
-    </div>
-    
-    
-    
-  </body>
+
+</body>
+
 </html>

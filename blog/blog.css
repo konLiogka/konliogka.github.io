@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono&display=swap');
+
+body {
+  background-color: #000000;
+  color: #cfc7c7;
+  font-family: "JetBrains Mono", monospace;
+  max-width: 800px;
+  margin: 2em auto;
+  padding: 1em;
+  line-height: 1.4;
+}
+
+main {
+  border: 1px solid;
+  background-color: #0F0F0F;
+}
+
+#home {
+  text-align: center;
+
+}
+
+#home a {
+  color: #666;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}
+
+.directory-listing {
+  border: 1px solid #444;
+  padding: 1em;
+}
+
+.directory-listing ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.directory-listing li {
+  padding: 0.3em 0;
+  border-bottom: 1px dotted #333;
+}
+
+.directory-listing li:last-child {
+  border-bottom: none;
+}
+
+.directory-listing a {
+  color: #cfc7c7;
+  text-decoration: none;
+  display: block;
+  padding: 0.2em;
+}
+
+.directory-listing a:before {
+  content: "└─";
+  color: #B25068;
+  margin-right: 0.5em;
+}
+
+.directory-listing a:hover {
+  background: #1a1a1a;
+}
+
+.directory-title {
+  color: #B25068;
+  margin-bottom: 1em;
+  padding-bottom: 0.5em;
+  border-bottom: 1px solid #444;
+}
+
+.imgs {
+
+  display: flex;
+  justify-content: center;
+}
+
+img {
+  margin: 0.2rem;
+}
+
+h1 {
+  text-align: center;
+}
+
+h2 {
+  text-align: center;
+}
+
+p {
+  margin: 0.4rem;
+  text-align: justify;
+}
+
+.code-container {
+  background-color: #1e1e1e;
+  border: 1px solid #444;
+  padding: 0.3rem;
+  margin: 0.3rem 0;
+  font-size: 0.9rem;
+  color: #9b86bd;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-family: "JetBrains Mono", monospace;
+}
+
+footer {
+  text-align: center;
+  margin-top: 5rem;
+  padding-top: 1rem;
+  border-top: 0.1rem solid #eee;
+}
+
+footer a {
+  color: #666;
+  text-decoration: none;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}

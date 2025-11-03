@@ -6,64 +6,58 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=0"
     />
-    <link rel="stylesheet" type="text/css" href="suckless.css" />
+    <link rel="stylesheet" type="text/css" href="blog.css" />
     <title>Arduino Multieffect Guitar Pedal</title>
   </head>
   <body>
-    <h1>Arduino Multieffect Guitar Pedal</h1>
-    <hr />
+    <main>
+      <h1>Arduino Multieffect Guitar Pedal</h1>
+      <p id="home"><a href="../index.html">← Back to home</a></p>
+      <hr />
 
-    <div class="imgs">
-      <img src="images/armfx1.jpg" style="width: 50%" />
-    </div>
-    <div class="banners">
-      <p>[Arduino]</p>
-      <p>[Sound Engineering]</p>
-      <p>[Electronics]</p>
-    </div>
-    <p>
-      During my tenure with the Integrated Digital/Analogue Circuits (IDAC) team
-      at IEE, IHU, as a guitar player I was set to create an arduino-based
-      Multieffect Guitar Pedal. This is just a fun and cheap little project to
-      venture into electronics, an arduino is not powerful enough to be a good
-      DSP so I would suggest using an ESP32. This project was made thanks to
-      <a href="https://www.electrosmash.com/pedalshield-uno">this</a> already
-      done implementation, albeit with some changes. First of all, I used an
-      Arduino nano clone, which features the same hardware but with a more
-      compact size. Secondly, the article suggests using a TL972 Op-Amp which
-      was low in stock at the time of making so I improvised and used a (worse)
-      alternative being the MCP6002. Lastly, I used a different configuration
-      for interacting with the arduino. A toggle switch was used for controlling
-      the volume/pitch while a pushbutton was used for cycling through effects,
-      provided there's enough memory. I also excluded the trimmer.
-    </p>
-    <hr />
-    <h2>Circuit</h2>
-    <div class="imgs">
-      <img src="images/armfx2.png" style="width: 90%" />
-    </div>
-    <p>
-      The schematic is simple enough. At first there's an input stage to
-      pre-amplify the signal using the op-amp's first input. In my case since I
-      don't use a trimmer, it amplifies the sound by
-      <span style="color: #d3869b"
-        >G = 1 + Rf/Rin = 1 + 100k/4.7k = 22 times</span
-      >. Some filters are also applied to the signal. Then it enters the arduino
-      through the analogue <span style="color: #8ec07c">pin A0</span>. After
-      that, the arduino acts as a Digital Signal Processor using code from the
-      site I posted earlier. In the output stage, the signal passes through the
-      input 2 of the op-amp without further amplification. The op-amp acts as a
-      voltage follower as a way to isolate the signal from the output current
-      and reduce noise. Additional filters are applied.
-    </p>
-    <div class="imgs">
-      <img src="images/armfx3.jpg" style="width: 70%" />
-      <img src="images/armfx4.jpg" style="width: 60%" />
-     
-    </div>
-    <div class="imgs">
-        <img src="images/armfx5.jpg" style="width: 80%" />
-       
+      <div class="imgs">
+        <img src="images/armfx1.jpg" style="width: 50%" />
       </div>
+      <p>
+        During my tenure with the Integrated Digital/Analogue Circuits (IDAC) team
+        at IEE, IHU, as a guitar player I was set to create an arduino-based
+        Multieffect Guitar Pedal. This is just a fun and cheap little project to
+        venture into electronics, an arduino is not powerful enough to be a good
+        DSP so I would suggest using an ESP32. This project was made thanks to
+        <a href="https://www.electrosmash.com/pedalshield-uno">this</a> already
+        done implementation, albeit with some changes. First of all, I used an
+        Arduino nano clone, which features the same hardware but with a more
+        compact size. Secondly, the article suggests using a TL972 Op-Amp which
+        was low in stock at the time of making so I improvised and used a (worse)
+        alternative being the MCP6002. Lastly, I used a different configuration
+        for interacting with the arduino. A toggle switch was used for controlling
+        the volume/pitch while a pushbutton was used for cycling through effects,
+        provided there's enough memory. I also excluded the trimmer.
+      </p>
+      <hr />
+      <h2>Circuit</h2>
+      <div class="imgs">
+        <img src="images/armfx2.png" style="width: 90%" />
+      </div>
+      <p>
+        The schematic is simple enough. At first there's an input stage to
+        pre-amplify the signal using the op-amp's first input. In my case since I
+        don't use a trimmer, it amplifies the sound by
+        <span style="color: #d3869b"
+          >G = 1 + Rf/Rin = 1 + 100k/4.7k = 22 times</span
+        >. Some filters are also applied to the signal. Then it enters the arduino
+        through the analogue <span style="color: #8ec07c">pin A0</span>. After
+        that, the arduino acts as a Digital Signal Processor using code from the
+        site I posted earlier. In the output stage, the signal passes through the
+        input 2 of the op-amp without further amplification. The op-amp acts as a
+        voltage follower as a way to isolate the signal from the output current
+        and reduce noise. Additional filters are applied.
+      </p>
+      <div class="imgs">
+        <img src="images/armfx3.jpg" style="width: 70%" />
+        <img src="images/armfx4.jpg" style="width: 60%" />
+      
+      </div>
+    </main>
   </body>
 </html>
